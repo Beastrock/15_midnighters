@@ -1,32 +1,37 @@
 import requests
 from datetime import datetime
-import pytz
+from pytz import timezone,UTC
+
+DEVMAN_API_URL = "http://devman.org/api/challenges/solution_attempts/"
 
 
-def load_attempts():
-    load_attempts_info = []
-    api_url = "http://devman.org/api/challenges/solution_attempts/?page = 1"
-    last_page_number = requests.get(api_url).json()["number_of_pages"] + 1
-    for page in range(1, last_page_number):
-        one_page_json = requests.get(api_url, params={"page": page}).json()
-        load_attempts_info.extend(one_page_json["records"])
-    return (load_attempts_info)
+def load_attempts(api_url=DEVMAN_API_URL):
+    page_number = 1
+    number_of_pages = 1
+    while page_number <= number_of_pages:
+        json_page = requests.get(api_url, params={'page': page_number}).json()
+        number_of_pages = int(json_page['number_of_pages'])
+        for record in json_page['records']:
+            if record['timestamp']:
+                yield record
+        page_number += 1
 
 
 def get_midnighters(load_attemps_info):
     midnighters = set()
     for load_attempt in load_attemps_info:
-        if not load_attempt["timestamp"] is None:
-            utc_now = datetime.fromtimestamp(int(load_attempt["timestamp"])).replace(tzinfo=pytz.UTC)
-            time_for = utc_now.astimezone(pytz.timezone(load_attempt["timezone"]))
-            if 0 <= time_for.hour < 6:
-                midnighters.add(load_attempt["username"])
+        if load_attempt["timestamp"] is None:
+            continue
+        timestamp = float(load_attempt["timestamp"])
+        attempt_time = datetime.fromtimestamp(timestamp, tz=timezone(load_attempt["timezone"]))
+        if 0 <= attempt_time.hour < 6:
+            midnighters.add(load_attempt["username"])
     return midnighters
 
 
 def print_midnighters(midnighters):
     print("Oh, damn! There are {} midnighters on Devman:".format(len(midnighters)))
-    for number,midnighter in enumerate(midnighters,1):
+    for number, midnighter in enumerate(midnighters, 1):
         print("{}) {}".format(number, midnighter))
 
 
