@@ -23,7 +23,7 @@ def get_midnighters(load_attemps_info):
         if load_attempt["timestamp"] is None:
             continue
         attempt_time = datetime.fromtimestamp(
-            float(load_attempt["timestamp"]), tz=timezone(load_attempt["timezone"]))
+            load_attempt["timestamp"], tz=timezone(load_attempt["timezone"]))
         if 0 <= attempt_time.hour < 6:
             midnighters.add(load_attempt["username"])
     return midnighters
