@@ -1,42 +1,35 @@
 import requests
-import datetime
+from datetime import datetime
 import pytz
 
 
 def load_attempts():
-    all_page_list = []
-    url = "http://devman.org/api/challenges/solution_attempts/?page = 1"
-    last_page = requests.get(url).json()["number_of_pages"] + 1
-    for page in range(1, last_page):
-        params = {"page": page}
-        one_page_json = requests.get("http://devman.org/api/challenges/solution_attempts/", params=params)
-        print("loading page number {}".format(one_page_json.json()["page"]))
-        all_page_list.extend(one_page_json.json()["records"])
-        print(all_page_list)
-    print(all_page_list)
-    return (all_page_list)
+    load_attempts_info = []
+    api_url = "http://devman.org/api/challenges/solution_attempts/?page = 1"
+    last_page_number = requests.get(api_url).json()["number_of_pages"] + 1
+    for page in range(1, last_page_number):
+        one_page_json = requests.get(api_url, params={"page": page}).json()
+        load_attempts_info.extend(one_page_json["records"])
+    return (load_attempts_info)
 
 
-
-def get_midnighters(all_page_list):
-    midnighters = []
-    for all_page in all_page_list:
-        if all_page["timestamp"]:
-            time = datetime.datetime.fromtimestamp(float(all_page["timestamp"]),tz=pytz.UTC)
-            print(time.time())
-            time_for = time.astimezone(pytz.timezone(all_page["timezone"]))
-            print(time_for.time())
-            if (0 <= time_for.hour < 6) and (not all_page["username"] in midnighters):
-                midnighters.append(all_page["username"])
-                print("этот хуев программист {} решал задачу в {}".
-                      format(all_page["username"], datetime.datetime.fromtimestamp(int(all_page["timestamp"])).time()))
+def get_midnighters(load_attemps_info):
+    midnighters = set()
+    for load_attempt in load_attemps_info:
+        if not load_attempt["timestamp"] is None:
+            utc_now = datetime.fromtimestamp(int(load_attempt["timestamp"])).replace(tzinfo=pytz.UTC)
+            time_for = utc_now.astimezone(pytz.timezone(load_attempt["timezone"]))
+            if 0 <= time_for.hour < 6:
+                midnighters.add(load_attempt["username"])
     return midnighters
 
+
 def print_midnighters(midnighters):
-    print("Oh, damn! There are {} midnighters on devman! Let us output them:".format(len(midnighters)))
-    for midnighter in midnighters:
-        print("{:^30s}".format(midnighter))
+    print("Oh, damn! There are {} midnighters on Devman:".format(len(midnighters)))
+    for number,midnighter in enumerate(midnighters,1):
+        print("{}) {}".format(number, midnighter))
 
 
 if __name__ == '__main__':
-    print_midnighters(get_midnighters(load_attempts()))
+    midnighters = get_midnighters(load_attempts())
+    print_midnighters(midnighters)
